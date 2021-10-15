@@ -1,0 +1,14 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: mce-sample-pipelinerun
+  namespace: openshift-pipelines
+spec:
+  pipelineRef:
+    name: dev-pipeline
+  serviceAccountName: mce-samples-sa
+  timeout: 1h0m0s
+  workspaces:
+    - name: shared-workspace
+      persistentVolumeClaim:
+        claimName: multiclusterengine-samples
