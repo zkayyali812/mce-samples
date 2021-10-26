@@ -1,7 +1,7 @@
 apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
-  name: dev-pipeline
+  name: deploy-sample-apps
   namespace: openshift-pipelines
 spec:
   params:
@@ -47,6 +47,18 @@ spec:
     taskRef:
       kind: Task
       name: apply-clusterpool
+    workspaces:
+    - name: source
+      workspace: shared-workspace
+  - name: await-clusterpool-ready
+    params:
+    - name: namespace
+      value: $(params.namespace)
+    runAfter:
+    - apply-clusterpool
+    taskRef:
+      kind: Task
+      name: await-clusterpool-ready
     workspaces:
     - name: source
       workspace: shared-workspace

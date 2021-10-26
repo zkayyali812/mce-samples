@@ -11,8 +11,8 @@ spec:
   platform:
     aws:
       credentialsSecretRef:
-        name: aws-creds
+        name: ""
       region: us-east-1
   pullSecretRef:
-    name: ocp-pull-secret
+    name: ""
   size: 0

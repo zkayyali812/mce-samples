@@ -21,16 +21,11 @@ spec:
   - args:
     - |-
       echo 'Applying clusterpool manifests'
-      oc apply -f resources/clusterpool/install-config-template.yaml -n $(inputs.params.namespace)
-
-      oc apply -f resources/clusterpool/clusterimageset.yaml -n $(inputs.params.namespace)
-
-      AWS_SECRET=$(inputs.params.aws-secret) OCP_SECRET=$(inputs.params.ocp-pull-secret) yq eval '
-        .spec.pullSecretRef.name = env(OCP_SECRET) |
-      .spec.platform.aws.credentialsSecretRef.name = env(AWS_SECRET)
-      ' resources/clusterpool/clusterpool.yaml | oc apply -n $(inputs.params.namespace) -f -
-
-      oc apply -f resources/clusterpool/clusterclaim.yaml -n $(inputs.params.namespace)
+      oc apply -f resources/clusterpool -n $(inputs.params.namespace)
+      
+      oc patch clusterpool aws-pool -n $(inputs.params.namespace) --type=json -p '[
+      {"op": "replace", "path": "/spec/platform/aws/credentialsSecretRef/name", "value": $(inputs.params.aws-secret)},
+      {"op": "replace", "path": "/spec/pullSecretRef/name", "value": $(inputs.params.ocp-pull-secret)}]'
       
       echo -----------------------------------
     command:

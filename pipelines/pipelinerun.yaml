@@ -5,7 +5,7 @@ metadata:
   namespace: openshift-pipelines
 spec:
   pipelineRef:
-    name: dev-pipeline
+    name: deploy-sample-apps
   params:
     - name: aws-secret
       value: aws-creds

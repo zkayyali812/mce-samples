@@ -1,0 +1,27 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: await-clusterpool-ready
+  namespace: openshift-pipelines
+spec:
+  params:
+  - name: namespace
+    default: default
+    description: The namespace to check for the clusterpool
+    type: string
+  steps:
+  - args:
+    - |-
+      echo 'Awaiting clusterclaim to be running'
+      oc apply -f resources/clusterclaim -n $(inputs.params.namespace)
+      oc wait --for=condition=ClusterRunning clusterclaim/demo-claim --timeout=-1s -n $(inputs.params.namespace)
+      echo -----------------------------------
+    command:
+    - /bin/bash
+    - -c
+    image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+    name: apply
+    resources: {}
+    workingDir: /workspace/source
+  workspaces:
+  - name: source
