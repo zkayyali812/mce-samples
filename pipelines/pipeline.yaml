@@ -4,6 +4,19 @@ metadata:
   name: dev-pipeline
   namespace: openshift-pipelines
 spec:
+  params:
+  - name: aws-secret
+    type: string
+    description: The AWS Secret to use for the pipeline. Defined in the pipeline namespace.
+    default: "aws-creds"
+  - name: ocp-pull-secret
+    type: string
+    description: The OCP Pull Secret to use for the pipeline
+    default: "ocp-pull-secret"
+  - name: namespace
+    type: string
+    description: The namespace to deploy the samples in
+    default: "multicluster-engine"
   tasks:
   - name: fetch-repository
     params:
@@ -21,15 +34,19 @@ spec:
     workspaces:
     - name: output
       workspace: shared-workspace
-  - name: apply-clusterdeployment
+  - name: apply-clusterpool
     params:
-    - name: manifest_dir
-      value: resources/clusterdeployment
+    - name: aws-secret
+      value: $(params.aws-secret)
+    - name: ocp-pull-secret
+      value: $(params.ocp-pull-secret)
+    - name: namespace
+      value: $(params.namespace)
     runAfter:
     - fetch-repository
     taskRef:
       kind: Task
-      name: apply-manifests
+      name: apply-clusterpool
     workspaces:
     - name: source
       workspace: shared-workspace

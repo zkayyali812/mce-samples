@@ -6,6 +6,13 @@ metadata:
 spec:
   pipelineRef:
     name: dev-pipeline
+  params:
+    - name: aws-secret
+      value: aws-creds
+    - name: ocp-pull-secret
+      value: ocp-pull-secret
+    - name: namespace
+      value: multicluster-engine
   serviceAccountName: mce-samples-sa
   timeout: 1h0m0s
   workspaces:

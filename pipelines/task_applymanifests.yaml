@@ -1,19 +1,37 @@
 apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
-  name: apply-manifests
+  name: apply-clusterpool
   namespace: openshift-pipelines
 spec:
   params:
-  - default: k8s
-    description: The directory in source that contains yaml manifests
-    name: manifest_dir
+  - name: aws-secret
+    default: aws-secret
+    description: The AWS Secret to use for the pipeline. Defined in the given namespace.
+    type: string
+  - name: ocp-pull-secret
+    default: ocp-pull-secret
+    description: The OCP Pull Secret to use for the pipeline. Defined in the given namespace.
+    type: string
+  - name: namespace
+    default: default
+    description: The namespace to deploy the the manifests to.
     type: string
   steps:
   - args:
     - |-
-      echo Applying manifests in $(inputs.params.manifest_dir) directory
-      oc apply -f $(inputs.params.manifest_dir)
+      echo 'Applying clusterpool manifests'
+      oc apply -f resources/clusterpool/install-config-template.yaml -n $(inputs.params.namespace)
+
+      oc apply -f resources/clusterpool/clusterimageset.yaml -n $(inputs.params.namespace)
+
+      AWS_SECRET=$(inputs.params.aws-secret) OCP_SECRET=$(inputs.params.ocp-pull-secret) yq eval '
+        .spec.pullSecretRef.name = env(OCP_SECRET) |
+      .spec.platform.aws.credentialsSecretRef.name = env(AWS_SECRET)
+      ' resources/clusterpool/clusterpool.yaml | oc apply -n $(inputs.params.namespace) -f -
+
+      oc apply -f resources/clusterpool/clusterclaim.yaml -n $(inputs.params.namespace)
+      
       echo -----------------------------------
     command:
     - /bin/bash
