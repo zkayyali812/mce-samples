@@ -1,0 +1,39 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: import-cluster
+  namespace: openshift-pipelines
+spec:
+  params:
+  - name: namespace
+    default: default
+    description: The namespace to check for the clusterpool
+    type: string
+  steps:
+  - args:
+    - |-
+      echo 'Attempting to import cluster'
+
+      NAMESPACE=$(oc get clusterclaim demo-claim -n $(inputs.params.namespace) -o=jsonpath='{.spec.namespace}')
+      KUBECONFIGSECRET=$(oc get clusterdeployment ${NAMESPACE} -n ${NAMESPACE} -o yaml -o=jsonpath='{.spec.clusterMetadata.adminKubeconfigSecretRef.name}')
+      KUBECONFIG=$(oc get secret ${KUBECONFIGSECRET} -n ${NAMESPACE} -o yaml -o=jsonpath='{.data.kubeconfig}' | base64 -d)
+      oc apply -f resources/import-cluster/templates/managed_cluster_cr.yaml
+      oc apply -f resources/import-cluster/templates/namespace.yaml
+      oc apply -f resources/import-cluster/templates/managed_cluster_secret.yaml -n spoke-cluster1
+      oc patch secret auto-import-secret -n spoke-cluster1 --type=json -p '[
+        {
+          "op": "replace",
+          "path": "/data/kubeconfig",
+          "value": "'"${KUBECONFIG}"'"
+        }
+      ]'
+      echo -----------------------------------
+    command:
+    - /bin/bash
+    - -c
+    image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+    name: apply
+    resources: {}
+    workingDir: /workspace/source
+  workspaces:
+  - name: source
