@@ -19,14 +19,7 @@ spec:
       KUBECONFIG=$(oc get secret ${KUBECONFIGSECRET} -n ${NAMESPACE} -o yaml -o=jsonpath='{.data.kubeconfig}' | base64 -d)
       oc apply -f resources/import-cluster/templates/managed_cluster_cr.yaml
       oc apply -f resources/import-cluster/templates/namespace.yaml
-      oc apply -f resources/import-cluster/templates/managed_cluster_secret.yaml -n spoke-cluster1
-      oc patch secret auto-import-secret -n spoke-cluster1 --type=json -p '[
-        {
-          "op": "replace",
-          "path": "/data/kubeconfig",
-          "value": "'"${KUBECONFIG}"'"
-        }
-      ]'
+      oc create secret generic auto-import-secret --from-literal=autoImportRetry=5 --from-literal=kubeconfig="${KUBECONFIG}" -n spoke-cluster1 
       echo -----------------------------------
     command:
     - /bin/bash

@@ -50,7 +50,7 @@ spec:
     workspaces:
     - name: source
       workspace: shared-workspace
-  - name: await-clusterpool-ready
+  - name: get-cluster
     params:
     - name: namespace
       value: $(params.namespace)
@@ -58,7 +58,19 @@ spec:
     - apply-clusterpool
     taskRef:
       kind: Task
-      name: await-clusterpool-ready
+      name: get-cluster
+    workspaces:
+    - name: source
+      workspace: shared-workspace
+  - name: import-cluster
+    params:
+    - name: namespace
+      value: $(params.namespace)
+    runAfter:
+    - get-cluster
+    taskRef:
+      kind: Task
+      name: import-cluster
     workspaces:
     - name: source
       workspace: shared-workspace
