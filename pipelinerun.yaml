@@ -2,7 +2,7 @@ apiVersion: tekton.dev/v1beta1
 kind: PipelineRun
 metadata:
   name: mce-sample-pipelinerun
-  namespace: openshift-pipelines
+  namespace: multicluster-engine
 spec:
   pipelineRef:
     name: deploy-sample-apps
@@ -13,7 +13,6 @@ spec:
       value: ocp-pull-secret
     - name: namespace
       value: multicluster-engine
-  serviceAccountName: mce-samples-sa
   timeout: 1h0m0s
   workspaces:
     - name: shared-workspace

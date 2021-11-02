@@ -2,7 +2,7 @@ apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   name: import-cluster
-  namespace: openshift-pipelines
+  namespace: multicluster-engine
 spec:
   params:
   - name: namespace
@@ -15,10 +15,10 @@ spec:
       echo 'Attempting to import cluster'
 
       NAMESPACE=$(oc get clusterclaim demo-claim -n $(inputs.params.namespace) -o=jsonpath='{.spec.namespace}')
-      KUBECONFIGSECRET=$(oc get clusterdeployment ${NAMESPACE} -n ${NAMESPACE} -o yaml -o=jsonpath='{.spec.clusterMetadata.adminKubeconfigSecretRef.name}')
+      KUBECONFIGSECRET=$(oc get cluosterdeployment ${NAMESPACE} -n ${NAMESPACE} -o yaml -o=jsonpath='{.spec.clusterMetadata.adminKubeconfigSecretRef.name}')
       KUBECONFIG=$(oc get secret ${KUBECONFIGSECRET} -n ${NAMESPACE} -o yaml -o=jsonpath='{.data.kubeconfig}' | base64 -d)
-      oc apply -f resources/import-cluster/managed_cluster_cr.yaml
       oc apply -f resources/import-cluster/namespace.yaml
+      oc apply -f resources/import-cluster/managed_cluster_cr.yaml
       oc apply -f resources/import-cluster/selectorsyncset.yaml -n ${NAMESPACE}
       oc create secret generic auto-import-secret --from-literal=autoImportRetry=5 --from-literal=kubeconfig="${KUBECONFIG}" -n spoke-cluster1 
       echo -----------------------------------
