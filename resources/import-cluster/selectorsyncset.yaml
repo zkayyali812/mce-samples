@@ -7,7 +7,7 @@ spec:
   - apiVersion: operator.openshift.io/v1alpha1
     kind: ImageContentSourcePolicy
     metadata:
-      name: rhacm-repo
+      name: sync-icsp
     spec:
       repositoryDigestMirrors:
       - mirrors:

@@ -2,7 +2,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: multiclusterengine-samples
-  namespace: openshift-pipelines
+  namespace: multicluster-engine
 spec:
   accessModes:
   - ReadWriteOnce
