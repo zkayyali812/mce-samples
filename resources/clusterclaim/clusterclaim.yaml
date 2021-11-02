@@ -1,6 +1,8 @@
 apiVersion: hive.openshift.io/v1
 kind: ClusterClaim
 metadata:
+  labels:
+    environment: Dev
   name: demo-claim
 spec:
   clusterPoolName: aws-pool
