@@ -20,14 +20,13 @@ spec:
   steps:
   - args:
     - |-
-      echo 'Applying clusterpool manifests'
+      #!/bin/bash
+      set -e
       oc apply -f resources/clusterpool -n $(inputs.params.namespace)
       
       oc patch clusterpool aws-pool -n $(inputs.params.namespace) --type=json -p '[
       {"op": "replace", "path": "/spec/platform/aws/credentialsSecretRef/name", "value": $(inputs.params.aws-secret)},
       {"op": "replace", "path": "/spec/pullSecretRef/name", "value": $(inputs.params.ocp-pull-secret)}]'
-      
-      echo -----------------------------------
     command:
     - /bin/bash
     - -c

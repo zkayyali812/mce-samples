@@ -1,0 +1,170 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: report-slack-status
+  namespace: multicluster-engine
+spec:
+  params:
+  - name: pipelinerun-name
+    default: ""
+    description: "The name of the current pipelinerun the task is running in"
+    type: string
+  - name: pipelinerun-namespace
+    default: ""
+    description: "The namespace of the current pipelinerun the task is running in"
+    type: string
+  - name: cloneRepoStatus
+    default: ""
+    description: "The status of the pipelineruns tasks"
+    type: string
+  - name: applyClusterpoolStatus
+    default: ""
+    description: "The status of the pipelineruns tasks"
+    type: string
+  - name: getClusterStatus
+    default: ""
+    description: "The status of the pipelineruns tasks"
+    type: string
+  - name: importClusterStatus
+    default: ""
+    description: "The status of the pipelineruns tasks"
+    type: string
+  - name: validateClusterStatus
+    default: ""
+    description: "The status of the pipelineruns tasks"
+    type: string
+  steps:
+  - args:
+    - |-
+      #!/bin/bash
+
+      TASKS_STATUS=""
+      getOverallStatus() {
+        cloneRepoStatus=$(inputs.params.cloneRepoStatus)
+        applyClusterpoolStatus=$(inputs.params.applyClusterpoolStatus)
+        getClusterStatus=$(inputs.params.getClusterStatus)
+        importClusterStatus=$(inputs.params.importClusterStatus)
+        validateClusterStatus=$(inputs.params.validateClusterStatus)
+
+        if [ "$cloneRepoStatus" != "Succeeded" ]; then
+          TASKS_STATUS="Failed to clone MCE samples repo"
+        elif [ "$applyClusterpoolStatus" != "Succeeded" ]; then
+          TASKS_STATUS="Failed to apply clusterpool"
+        elif [ "$getClusterStatus" != "Succeeded" ]; then
+          TASKS_STATUS="Failed to create cluster in allotted time (90m)."
+        elif [ "$importClusterStatus" != "Succeeded" ]; then
+          TASKS_STATUS="Failed to import cluster"
+        elif [ "$validateClusterStatus" != "Succeeded" ]; then
+          TASKS_STATUS="Failed to validate cluster status"
+        fi
+
+        if [[ "$TASKS_STATUS" != "" ]]; then
+          return
+        fi
+
+        TASKS_STATUS="Succeeded"
+      }
+
+
+      ## GENERATE RESULTS
+
+      getOverallStatus
+      _OVERALL_STATUS=""
+      if [ "$TASKS_STATUS" == "Succeeded" ]; then
+        _OVERALL_STATUS="Succeeded"
+        _OVERALL_MSG="All tasks passed"
+      else
+        _OVERALL_STATUS="Failure"
+        _OVERALL_MSG="$TASKS_STATUS"
+      fi
+
+
+
+      ## SLACK MESSAGE VARIABLES
+      
+      _MSG_HEADER="Multicluster Engine E2E Test Results"
+      if [ "${_OVERALL_STATUS}" == "Succeeded" ]; then
+          _MSG_HEADER_EMOJI=":tada:"
+      elif [ "${_OVERALL_STATUS}" == "Failure" ]; then
+          _MSG_HEADER_EMOJI=":itsfine-fire:"
+      fi
+      _MSG_HEADER="${_MSG_HEADER_EMOJI} ${_MSG_HEADER} ${_MSG_HEADER_EMOJI}"
+
+      _MCE_NAMESPACE=$(oc get mce -o yaml -o=jsonpath="{.items[0].spec.targetNamespace}")
+      _SNAPSHOT=$(oc get catalogsource -n ${_MCE_NAMESPACE} multiclusterengine-catalog -o=jsonpath="{.spec.image}" | sed 's/.*://')
+      if [ "${_SNAPSHOT}" == "" ]; then
+          _SNAPSHOT="Unknown"
+      fi
+
+      _PIPELINE_RUN_NS=$(inputs.params.pipelinerun-namespace)
+      _PIPELINE_RUN_NAME=$(inputs.params.pipelinerun-name)
+      _CONSOLE_ROUTE=$(oc get route -n openshift-console console -o jsonpath='{.spec.host}')
+      _PIPELINERUN_URL="https://${_CONSOLE_ROUTE}/k8s/ns/${_PIPELINE_RUN_NS}/tekton.dev~v1beta1~PipelineRun/${_PIPELINE_RUN_NAME}"
+
+      _SLACK_MSG_PYLD=$(cat << EOF
+        {
+          "blocks": [
+            {
+              "type": "header",
+              "text": {
+                "type": "plain_text",
+                "text": "${_MSG_HEADER}",
+                "emoji": true
+              }
+            },
+            {
+              "type": "section",
+              "fields": [
+                {
+                  "type": "mrkdwn",
+                  "text": "*Result:*\n${_OVERALL_STATUS}"
+                },
+                {
+                  "type": "mrkdwn",
+                  "text": "*Snapshot:*\n${_SNAPSHOT}"
+                },
+                {
+                  "type": "mrkdwn",
+                  "text": "*Message:*\n\`\`\`${_OVERALL_MSG}\`\`\`"
+                }
+              ]
+            },
+            {
+              "type": "actions",
+              "elements": [
+                {
+                  "type": "button",
+                  "text": {
+                    "type": "plain_text",
+                    "emoji": true,
+                    "text": "View PipelineRun"
+                  },
+                  "style": "primary",
+                  "url": "${_PIPELINERUN_URL}"
+                },
+                {
+                  "type": "button",
+                  "text": {
+                    "type": "plain_text",
+                    "emoji": true,
+                    "text": "Open issue"
+                  },
+                  "style": "danger",
+                  "url": "https://github.com/open-cluster-management/backlog/issues/new"
+                }
+              ]
+            }
+          ]
+        }
+      EOF
+      )
+      echo "$_SLACK_MSG_PYLD"
+    command:
+    - /bin/bash
+    - -c
+    image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+    name: apply
+    resources: {}
+    workingDir: /workspace/source
+  # workspaces:
+  # - name: source

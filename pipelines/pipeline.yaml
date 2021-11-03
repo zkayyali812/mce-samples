@@ -74,5 +74,34 @@ spec:
     workspaces:
     - name: source
       workspace: shared-workspace
+  - name: validate-cluster
+    runAfter:
+    - import-cluster
+    taskRef:
+      kind: Task
+      name: validate-cluster
+    workspaces:
+    - name: source
+      workspace: shared-workspace
+  finally:
+    - name: report-slack-status
+      params:
+        - name: pipelinerun-name
+          value: $(context.pipelineRun.name)
+        - name: pipelinerun-namespace
+          value: $(context.pipelineRun.namespace)
+        # Task Statuses below. OpenShift Pipelines does not support aggregate task statuses until piplines 0.24.x
+        - name: cloneRepoStatus
+          value: "$(tasks.fetch-repository.status)"
+        - name: applyClusterpoolStatus
+          value: "$(tasks.apply-clusterpool.status)"
+        - name: getClusterStatus
+          value: "$(tasks.get-cluster.status)"
+        - name: importClusterStatus
+          value: "$(tasks.import-cluster.status)"
+        - name: validateClusterStatus
+          value: "$(tasks.validate-cluster.status)"
+      taskRef:
+        name: report-slack-status
   workspaces:
   - name: shared-workspace

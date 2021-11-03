@@ -1,0 +1,26 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: validate-cluster
+  namespace: multicluster-engine
+spec:
+  results:
+    - name: result
+      description: Validates managedcluser has imported successfully and is running as expected
+  steps:
+  - args:
+    - |-
+      oc wait --for=condition=HubAcceptedManagedCluster managedcluster/spoke-cluster1 --timeout=0s &>/dev/null &&
+      oc wait --for=condition=ManagedClusterImportSucceeded managedcluster/spoke-cluster1 --timeout=0s &>/dev/null &&
+      oc wait --for=condition=ManagedClusterJoined managedcluster/spoke-cluster1 --timeout=0s &>/dev/null &&
+      oc wait --for=condition=ManagedClusterConditionAvailable managedcluster/spoke-cluster1 --timeout=0s &>/dev/null && 
+      echo "Success" || echo "Failure" | tee result
+    command:
+    - /bin/bash
+    - -c
+    image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+    name: apply
+    resources: {}
+    workingDir: /workspace/source
+  workspaces:
+  - name: source

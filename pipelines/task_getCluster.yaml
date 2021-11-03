@@ -12,10 +12,11 @@ spec:
   steps:
   - args:
     - |-
-      echo 'Awaiting clusterclaim to be running'
+      #!/bin/bash
+      set -e
+
       oc apply -f resources/clusterclaim -n $(inputs.params.namespace)
-      oc wait --for=condition=ClusterRunning clusterclaim/demo-claim --timeout=-1s -n $(inputs.params.namespace)
-      echo -----------------------------------
+      oc wait --for=condition=ClusterRunning clusterclaim/demo-claim --timeout=90m -n $(inputs.params.namespace)
     command:
     - /bin/bash
     - -c
