@@ -29,9 +29,9 @@ spec:
     default: ""
     description: "The status of the pipelineruns tasks"
     type: string
-  - name: validateClusterStatus
+  - name: applyManifestworkStatus
     default: ""
-    description: "The status of the pipelineruns tasks"
+    description: "The status of the manfiestwork tasks"
     type: string
   steps:
   - args:
@@ -44,7 +44,7 @@ spec:
         applyClusterpoolStatus=$(inputs.params.applyClusterpoolStatus)
         getClusterStatus=$(inputs.params.getClusterStatus)
         importClusterStatus=$(inputs.params.importClusterStatus)
-        validateClusterStatus=$(inputs.params.validateClusterStatus)
+        applyManifestworkStatus=$(inputs.params.applyManifestworkStatus)
 
         if [ "$cloneRepoStatus" != "Succeeded" ]; then
           TASKS_STATUS="Failed to clone MCE samples repo"
@@ -54,8 +54,8 @@ spec:
           TASKS_STATUS="Failed to create cluster in allotted time (90m)."
         elif [ "$importClusterStatus" != "Succeeded" ]; then
           TASKS_STATUS="Failed to import cluster"
-        elif [ "$validateClusterStatus" != "Succeeded" ]; then
-          TASKS_STATUS="Failed to validate cluster status"
+        elif [ "$applyManifestworkStatus" != "Succeeded" ]; then
+          TASKS_STATUS="Failed to apply manifestwork"
         fi
 
         if [[ "$TASKS_STATUS" != "" ]]; then
@@ -81,7 +81,7 @@ spec:
 
 
       ## SLACK MESSAGE VARIABLES
-      
+
       _MSG_HEADER="Multicluster Engine E2E Test Results"
       if [ "${_OVERALL_STATUS}" == "Succeeded" ]; then
           _MSG_HEADER_EMOJI=":tada:"

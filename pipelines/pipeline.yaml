@@ -74,12 +74,12 @@ spec:
     workspaces:
     - name: source
       workspace: shared-workspace
-  - name: validate-cluster
+  - name: apply-manifestwork
     runAfter:
     - import-cluster
     taskRef:
       kind: Task
-      name: validate-cluster
+      name: apply-manifestwork
     workspaces:
     - name: source
       workspace: shared-workspace
@@ -99,8 +99,8 @@ spec:
           value: "$(tasks.get-cluster.status)"
         - name: importClusterStatus
           value: "$(tasks.import-cluster.status)"
-        - name: validateClusterStatus
-          value: "$(tasks.validate-cluster.status)"
+        - name: applyManifestworkStatus
+          value: "$(tasks.apply-manifestwork.status)"
       taskRef:
         name: report-slack-status
   workspaces:

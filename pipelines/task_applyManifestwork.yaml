@@ -1,0 +1,22 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: apply-manifestwork
+spec:
+  steps:
+  - args:
+    - |-
+      #!/bin/bash
+      set -e
+      oc apply -f resources/manifestworks -n spoke-cluster1
+      oc wait --for=condition=Applied manifestworks/hello-work --timeout=10m -n spoke-cluster1 
+      oc wait --for=condition=Available manifestworks/hello-work --timeout=10m -n spoke-cluster1 
+    command:
+    - /bin/bash
+    - -c
+    image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+    name: apply
+    resources: {}
+    workingDir: /workspace/source
+  workspaces:
+  - name: source

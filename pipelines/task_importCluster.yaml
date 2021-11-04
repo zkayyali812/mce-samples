@@ -12,16 +12,21 @@ spec:
   steps:
   - args:
     - |-
-      echo 'Attempting to import cluster'
+      #!/bin/bash
+      set -e
 
       NAMESPACE=$(oc get clusterclaim demo-claim -n $(inputs.params.namespace) -o=jsonpath='{.spec.namespace}')
-      KUBECONFIGSECRET=$(oc get cluosterdeployment ${NAMESPACE} -n ${NAMESPACE} -o yaml -o=jsonpath='{.spec.clusterMetadata.adminKubeconfigSecretRef.name}')
+      KUBECONFIGSECRET=$(oc get clusterdeployment ${NAMESPACE} -n ${NAMESPACE} -o yaml -o=jsonpath='{.spec.clusterMetadata.adminKubeconfigSecretRef.name}')
       KUBECONFIG=$(oc get secret ${KUBECONFIGSECRET} -n ${NAMESPACE} -o yaml -o=jsonpath='{.data.kubeconfig}' | base64 -d)
       oc apply -f resources/import-cluster/namespace.yaml
       oc apply -f resources/import-cluster/managed_cluster_cr.yaml
       oc apply -f resources/import-cluster/selectorsyncset.yaml -n ${NAMESPACE}
       oc create secret generic auto-import-secret --from-literal=autoImportRetry=5 --from-literal=kubeconfig="${KUBECONFIG}" -n spoke-cluster1 
-      echo -----------------------------------
+
+      oc wait --for=condition=HubAcceptedManagedCluster managedcluster/spoke-cluster1 --timeout=10m
+      oc wait --for=condition=ManagedClusterImportSucceeded managedcluster/spoke-cluster1 --timeout=10m
+      oc wait --for=condition=ManagedClusterConditionAvailable managedcluster/spoke-cluster1 --timeout=10m
+      oc wait --for=condition=ManagedClusterJoined managedcluster/spoke-cluster1 --timeout=10m
     command:
     - /bin/bash
     - -c
