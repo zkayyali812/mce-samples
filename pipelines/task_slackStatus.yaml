@@ -101,6 +101,8 @@ spec:
       _CONSOLE_ROUTE=$(oc get route -n openshift-console console -o jsonpath='{.spec.host}')
       _PIPELINERUN_URL="https://${_CONSOLE_ROUTE}/k8s/ns/${_PIPELINE_RUN_NS}/tekton.dev~v1beta1~PipelineRun/${_PIPELINE_RUN_NAME}"
 
+      _SLACK_WEBHOOK_URL=$(oc get secret -n multicluster-engine slack-webhook-url -o=jsonpath='{.data.webhook}' | base64 -d)
+
       _SLACK_MSG_PYLD=$(cat << EOF
         {
           "blocks": [
@@ -158,7 +160,8 @@ spec:
         }
       EOF
       )
-      echo "$_SLACK_MSG_PYLD"
+
+      curl -X POST -H 'Content-type: application/json' --data "$_SLACK_MSG_PYLD" $_SLACK_WEBHOOK_URL
     command:
     - /bin/bash
     - -c
