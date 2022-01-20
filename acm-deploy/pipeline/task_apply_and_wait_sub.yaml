@@ -14,6 +14,8 @@ spec:
       oc apply -f acm-deploy/resources/acm_operatorgroup.yaml
       oc apply -f acm-deploy/resources/acm_subscription.yaml
 
+      oc get secret multiclusterhub-operator-pull-secret --namespace=openshift-marketplace -o json | jq 'del(.metadata.namespace,.metadata.resourceVersion,.metadata.uid) | .metadata.creationTimestamp=null' | oc apply --namespace=open-cluster-management -f -
+
       _ATTEMPTS=0
       until oc get sub acm-operator-subscription -n open-cluster-management -o jsonpath='{.status.currentCSV}' | grep -q "advanced";
       do 

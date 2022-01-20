@@ -44,9 +44,6 @@ spec:
     - name: source
       workspace: shared-workspace
   - name: apply-and-wait-for-mch
-    params:
-    - name: namespace
-      value: $(params.namespace)
     runAfter:
     - apply-and-wait-for-subscription
     taskRef:

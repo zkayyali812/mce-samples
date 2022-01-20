@@ -10,7 +10,19 @@ spec:
       #!/bin/bash
       set -e
 
-      oc apply -f acm-deploy/resources/acm_mch.yaml
+      oc apply -f acm-deploy/resources/acm_mch.yaml -n open-cluster-management
+
+      _ATTEMPTS=0
+      until oc get mch multiclusterhub -n open-cluster-management -o jsonpath={'.status.phase'} | grep "Running";
+      do 
+          echo "Waiting for MCH to enter a running state..."
+          _ATTEMPTS=$((_ATTEMPTS + 1))
+          sleep 10;
+          if [[ $_ATTEMPTS == 30 ]]; then
+              echo "Failed to install the MCH in allotted time"
+              exit 1
+          fi
+      done
 
     command:
     - /bin/bash
