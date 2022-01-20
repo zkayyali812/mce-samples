@@ -1,8 +1,8 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: multiclusterengine-samples
-  namespace: multicluster-engine
+  name: acm-deploy-pipeline-pvc
+  namespace: openshift-pipelines
 spec:
   accessModes:
   - ReadWriteOnce

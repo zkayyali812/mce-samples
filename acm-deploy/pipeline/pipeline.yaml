@@ -1,8 +1,8 @@
 apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
-  name: deploy-sample-apps
-  namespace: multicluster-engine
+  name: deploy-acm
+  namespace: openshift-pipelines
 spec:
   params:
   - name: aws-secret
@@ -34,7 +34,7 @@ spec:
     workspaces:
     - name: output
       workspace: shared-workspace
-  - name: apply-subscription
+  - name: apply-and-wait-for-subscription
     runAfter:
     - fetch-repository
     taskRef:
@@ -43,18 +43,18 @@ spec:
     workspaces:
     - name: source
       workspace: shared-workspace
-  # - name: get-cluster
-  #   params:
-  #   - name: namespace
-  #     value: $(params.namespace)
-  #   runAfter:
-  #   - apply-clusterpool
-  #   taskRef:
-  #     kind: Task
-  #     name: get-cluster
-  #   workspaces:
-  #   - name: source
-  #     workspace: shared-workspace
+  - name: apply-and-wait-for-mch
+    params:
+    - name: namespace
+      value: $(params.namespace)
+    runAfter:
+    - apply-and-wait-for-subscription
+    taskRef:
+      kind: Task
+      name: apply-and-wait-for-mch
+    workspaces:
+    - name: source
+      workspace: shared-workspace
   # - name: import-cluster
   #   params:
   #   - name: namespace
@@ -96,5 +96,5 @@ spec:
   #         value: "$(tasks.apply-manifestwork.status)"
   #     taskRef:
   #       name: report-slack-status
-  # workspaces:
-  # - name: shared-workspace
+  workspaces:
+  - name: shared-workspace
