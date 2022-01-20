@@ -4,20 +4,30 @@ metadata:
   name: apply-and-wait-for-subscription
   namespace: openshift-pipelines
 spec:
+  params:
+  - name: namespace
+    default: open-cluster-management
+    description: The namespace to deploy ACM into
+    type: string
+  - name: imagePullSecret
+    default: multiclusterhub-operator-pull-secret
+    description: The image pull secret used to deploy the catalogsources in 'openshift-marketplace' namespace
+    type: string
   steps:
   - args:
     - |-
       #!/bin/bash
       set -e
 
-      oc apply -f acm-deploy/resources/acm_namespace.yaml
-      oc apply -f acm-deploy/resources/acm_operatorgroup.yaml
-      oc apply -f acm-deploy/resources/acm_subscription.yaml
+      oc create namespace $(inputs.params.namespace) --dry-run=client -o yaml | oc apply -f -
 
-      oc get secret multiclusterhub-operator-pull-secret --namespace=openshift-marketplace -o json | jq 'del(.metadata.namespace,.metadata.resourceVersion,.metadata.uid) | .metadata.creationTimestamp=null' | oc apply --namespace=open-cluster-management -f -
+      oc apply -f acm-deploy/resources/acm_operatorgroup.yaml -n $(inputs.params.namespace)
+      oc apply -f acm-deploy/resources/acm_subscription.yaml -n $(inputs.params.namespace)
+
+      oc get secret $(inputs.params.imagePullSecret) --namespace=openshift-marketplace -o yaml | sed "s/namespace: .*/namespace: $(inputs.params.namespace)/"  | oc apply -f -
 
       _ATTEMPTS=0
-      until oc get sub acm-operator-subscription -n open-cluster-management -o jsonpath='{.status.currentCSV}' | grep -q "advanced";
+      until oc get sub acm-operator-subscription -n $(inputs.params.namespace) -o jsonpath='{.status.currentCSV}' | grep -q "advanced";
       do 
           echo "Waiting for CSV..."
           _ATTEMPTS=$((_ATTEMPTS + 1))
@@ -28,11 +38,11 @@ spec:
           fi
       done
 
-      _CURRENT_CSV=$(oc get sub acm-operator-subscription -n open-cluster-management -o jsonpath='{.status.currentCSV}')
+      _CURRENT_CSV=$(oc get sub acm-operator-subscription -n $(inputs.params.namespace) -o jsonpath='{.status.currentCSV}')
       echo $_CURRENT_CSV
 
       _ATTEMPTS=0
-      until oc get csv ${_CURRENT_CSV} -n open-cluster-management -ojsonpath='{.status.phase}' | grep "Succeeded";
+      until oc get csv ${_CURRENT_CSV} -n $(inputs.params.namespace) -ojsonpath='{.status.phase}' | grep "Succeeded";
       do 
           echo "Waiting for CSV to installation to complete..."
           _ATTEMPTS=$((_ATTEMPTS + 1))

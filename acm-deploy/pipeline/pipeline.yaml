@@ -5,18 +5,14 @@ metadata:
   namespace: openshift-pipelines
 spec:
   params:
-  - name: aws-secret
-    type: string
-    description: The AWS Secret to use for the pipeline. Defined in the pipeline namespace.
-    default: "aws-creds"
-  - name: ocp-pull-secret
-    type: string
-    description: The OCP Pull Secret to use for the pipeline
-    default: "ocp-pull-secret"
   - name: namespace
     type: string
-    description: The namespace to deploy the samples in
-    default: "multicluster-engine"
+    description: The namespace to deploy ACM into
+    default: "open-cluster-management"
+  - name: imagePullSecret
+    type: string
+    description: The image pull secret used to deploy the catalogsources in 'openshift-marketplace' namespace
+    default: "multiclusterhub-operator-pull-secret"
   tasks:
   - name: fetch-repository
     params:
@@ -35,6 +31,11 @@ spec:
     - name: output
       workspace: shared-workspace
   - name: apply-and-wait-for-subscription
+    params:
+    - name: namespace
+      value: $(params.namespace)
+    - name: imagePullSecret
+      value: $(params.imagePullSecret)
     runAfter:
     - fetch-repository
     taskRef:
@@ -44,6 +45,11 @@ spec:
     - name: source
       workspace: shared-workspace
   - name: apply-and-wait-for-mch
+    params:
+    - name: namespace
+      value: $(params.namespace)
+    - name: imagePullSecret
+      value: $(params.imagePullSecret)
     runAfter:
     - apply-and-wait-for-subscription
     taskRef:
@@ -52,46 +58,5 @@ spec:
     workspaces:
     - name: source
       workspace: shared-workspace
-  # - name: import-cluster
-  #   params:
-  #   - name: namespace
-  #     value: $(params.namespace)
-  #   runAfter:
-  #   - get-cluster
-  #   taskRef:
-  #     kind: Task
-  #     name: import-cluster
-  #   workspaces:
-  #   - name: source
-  #     workspace: shared-workspace
-  # - name: apply-manifestwork
-  #   runAfter:
-  #   - import-cluster
-  #   taskRef:
-  #     kind: Task
-  #     name: apply-manifestwork
-  #   workspaces:
-  #   - name: source
-  #     workspace: shared-workspace
-  # finally:
-  #   - name: report-slack-status
-  #     params:
-  #       - name: pipelinerun-name
-  #         value: $(context.pipelineRun.name)
-  #       - name: pipelinerun-namespace
-  #         value: $(context.pipelineRun.namespace)
-  #       # Task Statuses below. OpenShift Pipelines does not support aggregate task statuses until piplines 0.24.x
-  #       - name: cloneRepoStatus
-  #         value: "$(tasks.fetch-repository.status)"
-  #       - name: applyClusterpoolStatus
-  #         value: "$(tasks.apply-clusterpool.status)"
-  #       - name: getClusterStatus
-  #         value: "$(tasks.get-cluster.status)"
-  #       - name: importClusterStatus
-  #         value: "$(tasks.import-cluster.status)"
-  #       - name: applyManifestworkStatus
-  #         value: "$(tasks.apply-manifestwork.status)"
-  #     taskRef:
-  #       name: report-slack-status
   workspaces:
   - name: shared-workspace
