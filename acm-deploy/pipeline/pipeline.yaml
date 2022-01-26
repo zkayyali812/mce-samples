@@ -5,6 +5,18 @@ metadata:
   namespace: openshift-pipelines
 spec:
   params:
+  - name: clusterPoolName
+    type: string
+    description: The name of the clusterpool to use
+    default: "policy-aas-hubs"
+  - name: clusterPoolNamespace
+    type: string
+    description: The namespace to search for the clusterpool
+    default: "managed-services"
+  - name: clusterClaimName
+    type: string
+    description: The name of the clusterclaim to use
+    default: "zkayyali-test"
   - name: namespace
     type: string
     description: The namespace to deploy ACM into
@@ -30,6 +42,22 @@ spec:
     workspaces:
     - name: output
       workspace: shared-workspace
+  - name: checkout-cluster
+    params:
+    - name: clusterClaimName
+      value: $(params.clusterClaimName)
+    - name: clusterPoolName
+      value: $(params.clusterPoolName)
+    - name: clusterPoolNamespace
+      value: $(params.clusterPoolNamespace)
+    runAfter:
+    - fetch-repository
+    taskRef:
+      kind: Task
+      name: checkout-cluster
+    workspaces:
+    - name: source
+      workspace: shared-workspace
   - name: apply-and-wait-for-subscription
     params:
     - name: namespace
@@ -37,7 +65,7 @@ spec:
     - name: imagePullSecret
       value: $(params.imagePullSecret)
     runAfter:
-    - fetch-repository
+    - checkout-cluster
     taskRef:
       kind: Task
       name: apply-and-wait-for-subscription

@@ -1,0 +1,45 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: checkout-cluster
+  namespace: openshift-pipelines
+spec:
+  params:
+  - name: clusterClaimName
+    default: demo-claim
+    description: The name of the clusterclaim to use
+    type: string
+  - name: clusterPoolName
+    default: policy-aas-hubs
+    description: The name of the clusterpool to use
+    type: string
+  - name: clusterPoolNamespace
+    default: managed-services
+    description: he namespace to search for the clusterpool
+    type: string
+  steps:
+  - args:
+    - |-
+      #!/bin/bash
+      set -e
+
+      _TEMPLATE="apiVersion: hive.openshift.io/v1
+      kind: ClusterClaim
+      metadata:
+        name: $(inputs.params.clusterClaimName)
+        namespace: $(inputs.params.clusterPoolNamespace)
+      spec:
+        clusterPoolName: $(inputs.params.clusterPoolName)
+
+      echo "$_TEMPLATE" | oc apply -f -
+
+      oc wait --for=condition=ClusterRunning clusterclaim/$(inputs.params.clusterClaimName) --timeout=90m -n $(inputs.params.clusterPoolNamespace)
+    command:
+    - /bin/bash
+    - -c
+    image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+    name: apply
+    resources: {}
+    workingDir: /workspace/source
+  workspaces:
+  - name: source

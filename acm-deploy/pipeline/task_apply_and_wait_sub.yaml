@@ -22,6 +22,8 @@ spec:
       oc create namespace $(inputs.params.namespace) --dry-run=client -o yaml | oc apply -f -
 
       oc apply -f acm-deploy/resources/acm_operatorgroup.yaml -n $(inputs.params.namespace)
+      oc patch og default -n $(inputs.params.namespace) --type=merge -p '{ "spec":  { "targetNamespaces" : ["$(inputs.params.namespace)"]}}' -o yaml
+
       oc apply -f acm-deploy/resources/acm_subscription.yaml -n $(inputs.params.namespace)
 
       oc get secret $(inputs.params.imagePullSecret) --namespace=openshift-marketplace -o yaml | sed "s/namespace: .*/namespace: $(inputs.params.namespace)/"  | oc apply -f -
