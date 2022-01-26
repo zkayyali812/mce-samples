@@ -23,10 +23,14 @@ spec:
     default: "open-cluster-management"
   - name: imagePullSecret
     type: string
-    description: The image pull secret used to deploy the catalogsources in 'openshift-marketplace' namespace
+    description: The image pull secret used to deploy the catalogsources. Copied from clusterPoolNamespace
     default: "multiclusterhub-operator-pull-secret"
+  - name: snapshotTag
+    type: string
+    description: The SNAPSHOT Tag used to deploy the catalogsources
+    default: "SNAPSHOT"
   tasks:
-  - name: fetch-repository
+  - name: fetch-repo-samples
     params:
     - name: url
       value: https://github.com/zkayyali812/mce-samples.git
@@ -34,6 +38,24 @@ spec:
       value: main
     - name: deleteExisting
       value: "true"
+    - name: gitInitImage
+      value: registry.redhat.io/openshift-pipelines/pipelines-git-init-rhel8@sha256:afc5d3f9efe26c7042635d43b8ffd09d67936e3d0b6b901dc08a33e20313d361
+    taskRef:
+      kind: ClusterTask
+      name: git-clone
+    workspaces:
+    - name: output
+      workspace: shared-workspace
+  - name: fetch-repo-hypershift
+    params:
+    - name: url
+      value: https://github.com/openshift/hypershift.git
+    - name: revision
+      value: main
+    - name: deleteExisting
+      value: "true"
+    - name: subdirectory
+      value: "hypershift"
     - name: gitInitImage
       value: registry.redhat.io/openshift-pipelines/pipelines-git-init-rhel8@sha256:afc5d3f9efe26c7042635d43b8ffd09d67936e3d0b6b901dc08a33e20313d361
     taskRef:
@@ -50,11 +72,47 @@ spec:
       value: $(params.clusterPoolName)
     - name: clusterPoolNamespace
       value: $(params.clusterPoolNamespace)
+    - name: imagePullSecret
+      value: $(params.imagePullSecret)
     runAfter:
-    - fetch-repository
+    - fetch-repo-samples
     taskRef:
       kind: Task
       name: checkout-cluster
+    workspaces:
+    - name: source
+      workspace: shared-workspace
+  - name: login-to-cluster
+    params:
+    - name: username
+      value: "$(tasks.checkout-cluster.results.username)"
+    - name: password
+      value: "$(tasks.checkout-cluster.results.password)"
+    - name: api
+      value: "$(tasks.checkout-cluster.results.api)"
+    runAfter:
+    - checkout-cluster
+    taskRef:
+      kind: Task
+      name: login-to-cluster
+    workspaces:
+    - name: source
+      workspace: shared-workspace
+  - name: apply-acm-prereqs
+    params:
+    - name: namespace
+      value: "$(params.namespace)"
+    - name: imagePullSecretName
+      value: "$(params.imagePullSecret)"
+    - name: imagePullSecret
+      value: "$(tasks.checkout-cluster.results.imagePullSecret)"
+    - name: snapshotTag
+      value: "$(params.snapshotTag)"
+    runAfter:
+    - login-to-cluster
+    taskRef:
+      kind: Task
+      name: apply-acm-prereqs
     workspaces:
     - name: source
       workspace: shared-workspace
@@ -62,10 +120,8 @@ spec:
     params:
     - name: namespace
       value: $(params.namespace)
-    - name: imagePullSecret
-      value: $(params.imagePullSecret)
     runAfter:
-    - checkout-cluster
+    - apply-acm-prereqs
     taskRef:
       kind: Task
       name: apply-and-wait-for-subscription
@@ -83,6 +139,19 @@ spec:
     taskRef:
       kind: Task
       name: apply-and-wait-for-mch
+    workspaces:
+    - name: source
+      workspace: shared-workspace
+  - name: apply-and-wait-for-hypershift
+    params:
+    - name: namespace
+      value: $(params.namespace)
+    runAfter:
+    - apply-acm-prereqs
+    - fetch-repo-hypershift
+    taskRef:
+      kind: Task
+      name: apply-and-wait-for-hypershift
     workspaces:
     - name: source
       workspace: shared-workspace

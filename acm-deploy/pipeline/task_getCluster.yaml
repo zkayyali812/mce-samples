@@ -15,8 +15,21 @@ spec:
     type: string
   - name: clusterPoolNamespace
     default: managed-services
-    description: he namespace to search for the clusterpool
+    description: The namespace to search for the clusterpool
     type: string
+  - name: imagePullSecret
+    default: multiclusterhub-operator-pull-secret
+    description: he image pull secret used to deploy the catalogsources. Copied from clusterPoolNamespace
+    type: string
+  results:
+  - name: username
+    description: Username for the claimed cluster.
+  - name: password
+    description: Password for the claimed cluster.  
+  - name: api
+    description: API URL of the claimed cluster.
+  - name: imagePullSecret
+    description: The image pull secret used to deploy the catalogsources. Copied from clusterPoolNamespace
   steps:
   - args:
     - |-
@@ -29,11 +42,25 @@ spec:
         name: $(inputs.params.clusterClaimName)
         namespace: $(inputs.params.clusterPoolNamespace)
       spec:
-        clusterPoolName: $(inputs.params.clusterPoolName)
+        clusterPoolName: $(inputs.params.clusterPoolName)"
 
       echo "$_TEMPLATE" | oc apply -f -
 
-      oc wait --for=condition=ClusterRunning clusterclaim/$(inputs.params.clusterClaimName) --timeout=90m -n $(inputs.params.clusterPoolNamespace)
+      oc wait --for=condition=ClusterRunning clusterclaim.hive/$(inputs.params.clusterClaimName) --timeout=90m -n $(inputs.params.clusterPoolNamespace)
+
+      NAMESPACE=$(oc get clusterclaim.hive $(inputs.params.clusterClaimName) -n $(inputs.params.clusterPoolNamespace) -o=jsonpath='{.spec.namespace}')
+      CD_INFO=$(oc get clusterdeployment ${NAMESPACE} -n ${NAMESPACE} -o yaml -o=jsonpath='{.spec.clusterMetadata.adminPasswordSecretRef.name}')
+
+      _USERNAME=$(oc get secret ${CD_INFO} -n ${NAMESPACE} -o jsonpath='{.data.username}' | base64 -d )
+      _PASSWORD=$(oc get secret ${CD_INFO} -n ${NAMESPACE} -o jsonpath='{.data.password}' | base64 -d  )
+      _API_URL=$(oc get cd ${NAMESPACE} -n ${NAMESPACE} -o jsonpath='{.status.apiURL}' )
+
+      _PULL_SECRET=$(oc get secret $(inputs.params.imagePullSecret) -n $(inputs.params.clusterPoolNamespace) -o jsonpath="{.data.\.dockerconfigjson}")
+
+      echo "$_USERNAME" | tr -d '\n' > $(results.username.path)
+      echo "$_PASSWORD" | tr -d '\n' > $(results.password.path)
+      echo "$_API_URL" | tr -d '\n' > $(results.api.path)
+      echo "$_PULL_SECRET" | tr -d '\n' > $(results.imagePullSecret.path)
     command:
     - /bin/bash
     - -c

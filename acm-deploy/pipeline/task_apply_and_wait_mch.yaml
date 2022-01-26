@@ -19,6 +19,9 @@ spec:
       #!/bin/bash
       set -e
 
+      _LOGIN_CMD=$(cat login.sh)
+      eval "$_LOGIN_CMD"
+
       oc apply -f acm-deploy/resources/acm_mch.yaml -n $(inputs.params.namespace)
       oc patch mch multiclusterhub -n $(inputs.params.namespace) --type=json -p '[{"op": "replace", "path": "/spec/imagePullSecret", "value": $(inputs.params.imagePullSecret)}]'
 
@@ -27,7 +30,7 @@ spec:
       do 
           echo "Waiting for MCH to enter a running state..."
           _ATTEMPTS=$((_ATTEMPTS + 1))
-          sleep 10;
+          sleep 15;
           if [[ $_ATTEMPTS == 30 ]]; then
               echo "Failed to install the MCH in allotted time"
               exit 1

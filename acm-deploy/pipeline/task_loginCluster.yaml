@@ -1,0 +1,40 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: login-to-cluster
+  namespace: openshift-pipelines
+spec:
+  params:
+  - name: username
+    default: kubeadmin
+    description: The username of the claimed cluster
+    type: string
+  - name: password
+    default: password
+    description: The password of the claimed cluster
+    type: string
+  - name: api
+    default: https://api.openshift.com
+    description: The claimed cluster API URL
+    type: string
+  steps:
+  - args:
+    - |-
+      #!/bin/bash
+      set -e
+      set -x
+
+      LOGINDCMD="oc login $(inputs.params.api) -u $(inputs.params.username) -p $(inputs.params.password) --insecure-skip-tls-verify=true"
+      eval $LOGINDCMD
+
+      echo $LOGINDCMD > login.sh
+
+    command:
+    - /bin/bash
+    - -c
+    image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+    name: apply
+    resources: {}
+    workingDir: /workspace/source
+  workspaces:
+  - name: source
