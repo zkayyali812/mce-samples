@@ -22,17 +22,17 @@ spec:
     - |-
       #!/bin/bash
       set -e
-      set -x
 
       LOGINDCMD="oc login $(inputs.params.api) -u $(inputs.params.username) -p $(inputs.params.password) --insecure-skip-tls-verify=true"
       eval $LOGINDCMD
-
+      
       echo $LOGINDCMD > login.sh
+      echo $LOGINDCMD
 
     command:
     - /bin/bash
     - -c
-    image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+    image: quay.io/zkayyali812/ocm-utils:latest
     name: apply
     resources: {}
     workingDir: /workspace/source

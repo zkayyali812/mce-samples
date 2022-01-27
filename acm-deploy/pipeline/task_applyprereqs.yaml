@@ -90,7 +90,7 @@ spec:
     command:
     - /bin/bash
     - -c
-    image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+    image: quay.io/zkayyali812/ocm-utils:latest
     name: apply
     resources: {}
     workingDir: /workspace/source

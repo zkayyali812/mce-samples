@@ -19,7 +19,11 @@ spec:
     type: string
   - name: imagePullSecret
     default: multiclusterhub-operator-pull-secret
-    description: he image pull secret used to deploy the catalogsources. Copied from clusterPoolNamespace
+    description: The image pull secret used to deploy the catalogsources. Copied from clusterPoolNamespace
+    type: string
+  - name: awsCredsSecret
+    default: aws-creds
+    description: The name of the AWS Credentials Secret used to deploy HyperShift. Must exist in clusterPoolNamespace
     type: string
   results:
   - name: username
@@ -39,10 +43,13 @@ spec:
       _TEMPLATE="apiVersion: hive.openshift.io/v1
       kind: ClusterClaim
       metadata:
+        annotations:
+          cluster.open-cluster-management.io/createmanagedcluster: 'false'
         name: $(inputs.params.clusterClaimName)
         namespace: $(inputs.params.clusterPoolNamespace)
       spec:
-        clusterPoolName: $(inputs.params.clusterPoolName)"
+        clusterPoolName: $(inputs.params.clusterPoolName)
+        lifetime: 8h"
 
       echo "$_TEMPLATE" | oc apply -f -
 
@@ -50,6 +57,7 @@ spec:
 
       NAMESPACE=$(oc get clusterclaim.hive $(inputs.params.clusterClaimName) -n $(inputs.params.clusterPoolNamespace) -o=jsonpath='{.spec.namespace}')
       CD_INFO=$(oc get clusterdeployment ${NAMESPACE} -n ${NAMESPACE} -o yaml -o=jsonpath='{.spec.clusterMetadata.adminPasswordSecretRef.name}')
+      KUBECONFIG_SECRET=$(oc get cd ${NAMESPACE} -n ${NAMESPACE} -o yaml | yq eval '.spec.clusterMetadata.adminKubeconfigSecretRef.name' -)
 
       _USERNAME=$(oc get secret ${CD_INFO} -n ${NAMESPACE} -o jsonpath='{.data.username}' | base64 -d )
       _PASSWORD=$(oc get secret ${CD_INFO} -n ${NAMESPACE} -o jsonpath='{.data.password}' | base64 -d  )
@@ -57,6 +65,9 @@ spec:
 
       _PULL_SECRET=$(oc get secret $(inputs.params.imagePullSecret) -n $(inputs.params.clusterPoolNamespace) -o jsonpath="{.data.\.dockerconfigjson}")
 
+      oc get secret $(inputs.params.awsCredsSecret) -n $(inputs.params.clusterPoolNamespace) -o yaml | yq eval '.data' - > awsCredentials.txt
+      oc get secret -n ${NAMESPACE} ${KUBECONFIG_SECRET} -o yaml | yq eval '.data.kubeconfig' - | base64 -d > kubeconfig.yaml
+      
       echo "$_USERNAME" | tr -d '\n' > $(results.username.path)
       echo "$_PASSWORD" | tr -d '\n' > $(results.password.path)
       echo "$_API_URL" | tr -d '\n' > $(results.api.path)
@@ -64,7 +75,7 @@ spec:
     command:
     - /bin/bash
     - -c
-    image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+    image: quay.io/zkayyali812/ocm-utils:latest
     name: apply
     resources: {}
     workingDir: /workspace/source

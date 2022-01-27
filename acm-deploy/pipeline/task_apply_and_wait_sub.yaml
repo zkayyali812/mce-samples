@@ -18,10 +18,20 @@ spec:
       _LOGIN_CMD=$(cat login.sh)
       eval "$_LOGIN_CMD"
 
-      oc apply -f acm-deploy/resources/acm_operatorgroup.yaml -n $(inputs.params.namespace)
+      existingCSV=$(oc get sub acm-operator-subscription -n $(inputs.params.namespace) -o yaml | yq eval '.status.currentCSV' -)
+      if [[ "$existingCSV" != "" ]]; then
+          echo "Existing ACM install exists"
+          echo $existingCSV
+          oc delete csv $existingCSV -n $(inputs.params.namespace)
+          oc delete sub -n $(inputs.params.namespace) acm-operator-subscription
+      else
+          echo "Existing ACM install does not exist"
+      fi
+
+      oc apply -f samples/acm-deploy/resources/acm_operatorgroup.yaml -n $(inputs.params.namespace)
       oc patch og default -n $(inputs.params.namespace) --type=merge -p '{ "spec":  { "targetNamespaces" : ["$(inputs.params.namespace)"]}}'
 
-      oc apply -f acm-deploy/resources/acm_subscription.yaml -n $(inputs.params.namespace)
+      oc apply -f samples/acm-deploy/resources/acm_subscription.yaml -n $(inputs.params.namespace)
 
       _ATTEMPTS=0
       until oc get sub acm-operator-subscription -n $(inputs.params.namespace) -o jsonpath='{.status.currentCSV}' | grep -q "advanced";
@@ -52,7 +62,7 @@ spec:
     command:
     - /bin/bash
     - -c
-    image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+    image: quay.io/zkayyali812/ocm-utils:latest
     name: apply
     resources: {}
     workingDir: /workspace/source

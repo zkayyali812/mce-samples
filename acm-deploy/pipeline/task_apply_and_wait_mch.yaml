@@ -22,7 +22,7 @@ spec:
       _LOGIN_CMD=$(cat login.sh)
       eval "$_LOGIN_CMD"
 
-      oc apply -f acm-deploy/resources/acm_mch.yaml -n $(inputs.params.namespace)
+      oc apply -f samples/acm-deploy/resources/acm_mch.yaml -n $(inputs.params.namespace)
       oc patch mch multiclusterhub -n $(inputs.params.namespace) --type=json -p '[{"op": "replace", "path": "/spec/imagePullSecret", "value": $(inputs.params.imagePullSecret)}]'
 
       _ATTEMPTS=0
@@ -40,7 +40,7 @@ spec:
     command:
     - /bin/bash
     - -c
-    image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+    image: quay.io/zkayyali812/ocm-utils:latest
     name: apply
     resources: {}
     workingDir: /workspace/source
