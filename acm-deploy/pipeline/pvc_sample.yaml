@@ -2,7 +2,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: acm-deploy-pipeline-pvc
-  namespace: openshift-pipelines
+  namespace: managed-services
 spec:
   accessModes:
   - ReadWriteOnce

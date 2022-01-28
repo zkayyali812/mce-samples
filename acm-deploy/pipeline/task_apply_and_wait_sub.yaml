@@ -2,7 +2,7 @@ apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   name: apply-and-wait-for-subscription
-  namespace: openshift-pipelines
+  namespace: managed-services
 spec:
   params:
   - name: namespace

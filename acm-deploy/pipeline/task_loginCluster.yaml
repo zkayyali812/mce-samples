@@ -2,7 +2,7 @@ apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   name: login-to-cluster
-  namespace: openshift-pipelines
+  namespace: managed-services
 spec:
   params:
   - name: username

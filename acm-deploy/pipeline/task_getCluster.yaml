@@ -2,7 +2,7 @@ apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   name: checkout-cluster
-  namespace: openshift-pipelines
+  namespace: managed-services
 spec:
   params:
   - name: clusterClaimName
@@ -17,10 +17,6 @@ spec:
     default: managed-services
     description: The namespace to search for the clusterpool
     type: string
-  - name: imagePullSecret
-    default: multiclusterhub-operator-pull-secret
-    description: The image pull secret used to deploy the catalogsources. Copied from clusterPoolNamespace
-    type: string
   - name: awsCredsSecret
     default: aws-creds
     description: The name of the AWS Credentials Secret used to deploy HyperShift. Must exist in clusterPoolNamespace
@@ -32,8 +28,6 @@ spec:
     description: Password for the claimed cluster.  
   - name: api
     description: API URL of the claimed cluster.
-  - name: imagePullSecret
-    description: The image pull secret used to deploy the catalogsources. Copied from clusterPoolNamespace
   steps:
   - args:
     - |-
@@ -49,7 +43,7 @@ spec:
         namespace: $(inputs.params.clusterPoolNamespace)
       spec:
         clusterPoolName: $(inputs.params.clusterPoolName)
-        lifetime: 8h"
+        lifetime: 170h"
 
       echo "$_TEMPLATE" | oc apply -f -
 
@@ -62,16 +56,12 @@ spec:
       _USERNAME=$(oc get secret ${CD_INFO} -n ${NAMESPACE} -o jsonpath='{.data.username}' | base64 -d )
       _PASSWORD=$(oc get secret ${CD_INFO} -n ${NAMESPACE} -o jsonpath='{.data.password}' | base64 -d  )
       _API_URL=$(oc get cd ${NAMESPACE} -n ${NAMESPACE} -o jsonpath='{.status.apiURL}' )
-
-      _PULL_SECRET=$(oc get secret $(inputs.params.imagePullSecret) -n $(inputs.params.clusterPoolNamespace) -o jsonpath="{.data.\.dockerconfigjson}")
-
       oc get secret $(inputs.params.awsCredsSecret) -n $(inputs.params.clusterPoolNamespace) -o yaml | yq eval '.data' - > awsCredentials.txt
       oc get secret -n ${NAMESPACE} ${KUBECONFIG_SECRET} -o yaml | yq eval '.data.kubeconfig' - | base64 -d > kubeconfig.yaml
       
       echo "$_USERNAME" | tr -d '\n' > $(results.username.path)
       echo "$_PASSWORD" | tr -d '\n' > $(results.password.path)
       echo "$_API_URL" | tr -d '\n' > $(results.api.path)
-      echo "$_PULL_SECRET" | tr -d '\n' > $(results.imagePullSecret.path)
     command:
     - /bin/bash
     - -c

@@ -2,7 +2,7 @@ apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
   name: deploy-acm
-  namespace: openshift-pipelines
+  namespace: "managed-services"
 spec:
   params:
   - name: clusterPoolNamespace
@@ -21,14 +21,6 @@ spec:
     type: string
     description: The namespace to deploy ACM onto the target cluster
     default: "open-cluster-management"
-  - name: imagePullSecret
-    type: string
-    description: The name of the image pull secret used to deploy the catalogsources. Must exist in clusterPoolNamespace
-    default: "multiclusterhub-operator-pull-secret"
-  - name: snapshotTag
-    type: string
-    description: The SNAPSHOT tag used to deploy the catalogsources. https://quay.io/repository/stolostron/acm-custom-registry?tab=tags
-    default: "SNAPSHOT"
   - name: awsCredsSecret
     type: string
     description: The name of the AWS Credentials Secret used to deploy HyperShift. Must exist in clusterPoolNamespace
@@ -104,8 +96,6 @@ spec:
       value: $(params.clusterPoolName)
     - name: clusterPoolNamespace
       value: $(params.clusterPoolNamespace)
-    - name: imagePullSecret
-      value: $(params.imagePullSecret)
     - name: awsCredsSecret
       value: $(params.awsCredsSecret)
     runAfter:
@@ -136,12 +126,8 @@ spec:
     params:
     - name: namespace
       value: "$(params.namespace)"
-    - name: imagePullSecretName
-      value: "$(params.imagePullSecret)"
-    - name: imagePullSecret
-      value: "$(tasks.checkout-cluster.results.imagePullSecret)"
-    - name: snapshotTag
-      value: "$(params.snapshotTag)"
+    # - name: snapshotTag
+    #   value: "$(params.snapshotTag)"
     runAfter:
     - login-to-cluster
     taskRef:
@@ -166,8 +152,8 @@ spec:
     params:
     - name: namespace
       value: $(params.namespace)
-    - name: imagePullSecret
-      value: $(params.imagePullSecret)
+    # - name: imagePullSecret
+    #   value: $(params.imagePullSecret)
     runAfter:
     - apply-and-wait-for-subscription
     taskRef:
